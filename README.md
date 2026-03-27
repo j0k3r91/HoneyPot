@@ -1,5 +1,21 @@
 # 🍯 HoneyPot — Guide d'administration
 
+## Installation
+
+Sur une machine fraîche **Ubuntu 24.04 LTS** :
+
+```bash
+# Copier install.sh sur le serveur puis :
+sudo bash install.sh
+```
+
+Le script installe et configure automatiquement (12 étapes) :
+Cowrie · OpenCanary · PostgreSQL · Grafana (HTTPS) · UFW · Dashboard 20 panels
+
+> Pour re-déployer le dashboard uniquement : `optimize.py`
+
+---
+
 **Serveur :** `<votre-ip>:2222`
 
 ```
@@ -25,7 +41,7 @@ sudo ufw allow from <votre-ip> to any port 3000 comment "Grafana (IP restreinte)
 
 | Port | Règle | Usage |
 |---|---|---|
-| `${SSH_ADMIN_PORT}` | ALLOW | SSH d'administration |
+| `2222` *(configurable)* | ALLOW | SSH d'administration |
 | `22` | ALLOW | Cowrie SSH (honeypot) |
 | `23` | ALLOW | Cowrie Telnet (honeypot) |
 | `21` | ALLOW | OpenCanary FTP |
@@ -137,7 +153,7 @@ SELECT pg_size_pretty(pg_total_relation_size('events'));
 
 ## Grafana
 
-- **URL :** `http://<votre-ip>:3000`
+- **URL :** `https://<votre-ip>:3000`  *(certificat auto-signé — ignorer l'alerte navigateur)*
 - **Login :** `admin` / votre mot de passe Grafana
 - **Dashboard :** `🍯 Honeypot Dashboard` (uid: `honeypot-v4`)
 - **Refresh :** 5 s (automatique)

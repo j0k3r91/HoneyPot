@@ -1,5 +1,8 @@
 # Procédure d'installation complète — Honeypot VM
 
+> **Installation rapide :** `sudo bash install.sh` sur Ubuntu 24.04 — tout est automatisé (12 étapes).
+> Ce document détaille chaque étape pour une installation manuelle ou la compréhension du système.
+
 > **Objectif :** Installer from scratch un honeypot avec Cowrie, OpenCanary, PostgreSQL et Grafana.  
 > **OS recommandé :** Ubuntu 24.04 LTS — 1 vCPU minimum, 1 GB RAM, 20 GB disque  
 
@@ -669,23 +672,37 @@ sudo systemctl start grafana-server
 
 > Version installée : **Grafana 12.4.1**
 
-### Configuration HTTPS
+### Configuration HTTPS (certificat auto-signé)
+
+Le script `install.sh` configure automatiquement HTTPS avec un certificat auto-signé (valide 10 ans).
+Si vous configurez manuellement, voici les commandes équivalentes :
+
+```bash
+# Générer le certificat
+sudo mkdir -p /etc/grafana/certs
+sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+    -keyout /etc/grafana/certs/grafana.key \
+    -out    /etc/grafana/certs/grafana.crt \
+    -subj   "/CN=grafana-honeypot/O=HoneyPot/C=FR"
+sudo chown -R grafana:grafana /etc/grafana/certs
+sudo chmod 600 /etc/grafana/certs/grafana.key
+```
 
 Éditer `/etc/grafana/grafana.ini` :
 
 ```ini
 [server]
-protocol = http
-http_port = 3000
-# domain = votre-domaine.example.com   # Optionnel — décommenter si vous avez un domaine
-# root_url = %(protocol)s://%(domain)s:%(http_port)s/
+protocol   = https
+http_port  = 3000
+cert_file  = /etc/grafana/certs/grafana.crt
+cert_key   = /etc/grafana/certs/grafana.key
 ```
-
-> Si pas de certificat custom, Grafana génère un certificat auto-signé.
 
 ```bash
 sudo systemctl restart grafana-server
 ```
+
+> **Note :** Le certificat est auto-signé — le navigateur affichera une alerte à ignorer (`proceed anyway`).
 
 ### Ajouter la datasource PostgreSQL
 
@@ -811,7 +828,7 @@ PORT   SERVICE         PROCESSUS
 | **Serveur** | Votre IP publique |
 | **SSH admin** | `ssh -p 2222 <user>@<IP>` |
 | **PostgreSQL** | `localhost:5432` · db=`honeypot` · user=`honeypot` · pass=`VOTRE_MDP_PG` |
-| **Grafana** | `http://<IP>:3000` · `admin` / votre mot de passe Grafana |
+- **Grafana** | `https://<IP>:3000` · `admin` / votre mot de passe Grafana *(cert auto-signé)* |
 | **Grafana datasource UID** | auto-détecté par `optimize.py` |
 | **Dashboard UID** | `honeypot-v4` |
 | **Dashboard nom** | `🍯 Honeypot Dashboard` |
