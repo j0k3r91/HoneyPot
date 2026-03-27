@@ -260,6 +260,12 @@ CREATE INDEX IF NOT EXISTS idx_events_login_ok   ON events (ts DESC)
 VACUUM ANALYZE events;
 SQL
 
+# GRANT séparé : le bloc précédent est <<'SQL' (pas d'expansion), on utilise un nouveau psql
+sudo -u postgres psql -d "${PG_DB}" -v ON_ERROR_STOP=0 <<SQL
+GRANT ALL PRIVILEGES ON TABLE events TO ${PG_USER};
+GRANT USAGE, SELECT ON SEQUENCE events_id_seq TO ${PG_USER};
+SQL
+
 ok "Base PostgreSQL '${PG_DB}' prête avec 9 index"
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
