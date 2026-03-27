@@ -121,7 +121,7 @@ apt-get install -y -qq \
     git curl wget net-tools \
     postgresql postgresql-contrib \
     build-essential libssl-dev libffi-dev \
-    libpq-dev ufw openssl
+    libpq-dev ufw openssl authbind
 
 ok "Paquets installés"
 
@@ -321,7 +321,8 @@ content = re.sub(r'(?m)^#?\s*hostname\s*=.*', 'hostname = ${COWRIE_HOSTNAME}', c
 content = re.sub(r'(?ms)(^\[ssh\].*?)(enabled\s*=\s*\w+)', r'\1enabled = true', content)
 content = re.sub(r'(?ms)(^\[ssh\].*?)(listen_port\s*=\s*\S+)', r'\1listen_port = 22', content)
 
-# La section [ssh] listen_endpoints
+# Forcer listen_endpoints sur le port 22 (override la valeur par défaut 2222)
+content = re.sub(r'(?m)^.*listen_endpoints.*$', 'listen_endpoints = tcp:22:interface=0.0.0.0', content)
 if 'listen_endpoints' not in content:
     content = re.sub(r'(?m)(^\[ssh\][\s\S]*?listen_port.*?\n)',
                      r'\1listen_endpoints = tcp:22:interface=0.0.0.0\n', content)
@@ -463,6 +464,13 @@ sudo -u "${COWRIE_USER}" mkdir -p "${COWRIE_HOME}/var/log/cowrie"
 sudo -u "${COWRIE_USER}" mkdir -p "${COWRIE_HOME}/var/run/cowrie"
 ok "Répertoires var/ créés"
 
+# Authbind : autoriser l'user cowrie à binder les ports 22 et 23 (< 1024)
+# sans root (nécessaire pour systemd Type=simple avec User=cowrie)
+touch /etc/authbind/byport/22 /etc/authbind/byport/23
+chown "${COWRIE_USER}" /etc/authbind/byport/22 /etc/authbind/byport/23
+chmod 500 /etc/authbind/byport/22 /etc/authbind/byport/23
+ok "authbind configuré pour ports 22 et 23"
+
 # Service systemd Cowrie
 # On utilise twistd --nodaemon (Type=simple) pour éviter toute dépendance
 # sur le script bin/cowrie du git clone (chemin variable selon la version).
@@ -477,7 +485,7 @@ User=${COWRIE_USER}
 WorkingDirectory=${COWRIE_HOME}
 Environment=PYTHONPATH=${COWRIE_HOME}/src
 Environment=HOME=/home/${COWRIE_USER}
-ExecStart=${COWRIE_ENV}/bin/twistd --umask=0022 --nodaemon \
+ExecStart=/usr/bin/authbind --deep ${COWRIE_ENV}/bin/twistd --umask=0022 --nodaemon \
     --logfile=${COWRIE_HOME}/var/log/cowrie/cowrie.log \
     cowrie
 ExecStop=/bin/kill -TERM \$MAINPID
