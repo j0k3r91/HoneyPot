@@ -288,8 +288,10 @@ fi
 # Installer les dépendances
 sudo -u "${COWRIE_USER}" "${COWRIE_ENV}/bin/pip" install -q --upgrade pip
 sudo -u "${COWRIE_USER}" "${COWRIE_ENV}/bin/pip" install -q -r "${COWRIE_HOME}/requirements.txt"
+# Installer Cowrie comme package (enregistre le plugin twistd "cowrie")
+sudo -u "${COWRIE_USER}" "${COWRIE_ENV}/bin/pip" install -q -e "${COWRIE_HOME}"
 sudo -u "${COWRIE_USER}" "${COWRIE_ENV}/bin/pip" install -q psycopg2-binary
-ok "Dépendances Cowrie installées (+ psycopg2-binary)"
+ok "Dépendances Cowrie installées (+ plugin twistd + psycopg2-binary)"
 
 # Générer cowrie.cfg depuis le template
 [[ ! -f "${COWRIE_HOME}/etc/cowrie.cfg.dist" ]] && die "cowrie.cfg.dist introuvable — vérifiez le clone"
