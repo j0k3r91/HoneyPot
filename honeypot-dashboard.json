@@ -1,0 +1,1774 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Honeypot Dashboard — Cowrie + OpenCanary → PostgreSQL",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 100
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^(value|n)$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS value FROM events WHERE ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer)",
+          "refId": "A"
+        }
+      ],
+      "title": "🔌 Total Connexions",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^(value|n)$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(DISTINCT src_ip) AS value FROM events WHERE src_ip != '' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer)",
+          "refId": "A"
+        }
+      ],
+      "title": "🌍 IPs Uniques",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^(value|n)$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS value FROM events WHERE event_type='cowrie.login.success' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer)",
+          "refId": "A"
+        }
+      ],
+      "title": "⚠️ Logins Réussis ALARME",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 100
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^(value|n)$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS value FROM events WHERE event_type='cowrie.command.input' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer)",
+          "refId": "A"
+        }
+      ],
+      "title": "💻 Commandes Exécutées",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^(value|n)$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS value FROM events WHERE event_type='cowrie.session.file_upload' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer)",
+          "refId": "A"
+        }
+      ],
+      "title": "🗂️ Fichiers Uploadés (Malware)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 100
+              },
+              {
+                "color": "red",
+                "value": 500
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^(value|n)$/",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS value FROM events WHERE event_type IN ('cowrie.login.failed','1001') AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer)",
+          "refId": "A"
+        }
+      ],
+      "title": "🚫 Logins Échoués",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "time_series",
+          "rawSql": "\nSELECT\n  to_timestamp(floor(ts/GREATEST($__interval_ms::bigint, 10000)::float)*GREATEST($__interval_ms::bigint, 10000)/1000.0) AS time,\n  SUM(CASE WHEN event_type='cowrie.session.connect'      THEN 1 ELSE 0 END) AS \"SSH/Telnet\",\n  SUM(CASE WHEN event_type='cowrie.login.success'        THEN 1 ELSE 0 END) AS \"Logins Réussis\",\n  SUM(CASE WHEN event_type='cowrie.command.input'        THEN 1 ELSE 0 END) AS \"Commandes\",\n  SUM(CASE WHEN event_type='cowrie.session.file_upload'  THEN 1 ELSE 0 END) AS \"Upload Malware\",\n  SUM(CASE WHEN event_type='8001'                        THEN 1 ELSE 0 END) AS \"MySQL\",\n  SUM(CASE WHEN event_type='14001'                       THEN 1 ELSE 0 END) AS \"RDP\",\n  SUM(CASE WHEN event_type='12001'                       THEN 1 ELSE 0 END) AS \"VNC\"\nFROM events\nWHERE ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer)\nGROUP BY floor(ts/GREATEST($__interval_ms::bigint, 10000)::float)\nORDER BY 1 ASC\n",
+          "refId": "A"
+        }
+      ],
+      "title": "📈 Activité dans le Temps — Toutes Sources",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 14,
+        "x": 0,
+        "y": 13
+      },
+      "id": 8,
+      "options": {
+        "barRadius": 0.1,
+        "barWidth": 0.7,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT src_ip, COUNT(*) AS attaques FROM events WHERE src_ip != '' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer) GROUP BY src_ip ORDER BY attaques DESC LIMIT 10",
+          "refId": "A"
+        }
+      ],
+      "title": "🏆 Top 10 IPs Attaquantes",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 14,
+        "y": 13
+      },
+      "id": 9,
+      "options": {
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "sort": "desc",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "\nSELECT\n  CASE\n    WHEN source='cowrie'      AND dst_port=22  THEN '🔑 SSH 22'\n    WHEN source='cowrie'      AND dst_port=23  THEN '📟 Telnet 23'\n    WHEN event_type='8001'                     THEN '🗄️ MySQL 3306'\n    WHEN event_type='14001'                    THEN '🖥️ RDP 3389'\n    WHEN event_type='12001'                    THEN '🖱️ VNC 5900'\n    WHEN event_type='3000'                     THEN '📁 FTP 21'\n    WHEN event_type='1001'                     THEN '� SSH 22'\n    WHEN event_type='2000'                     THEN '📟 Telnet 23'\n  END AS protocole,\n  COUNT(*) AS connexions\nFROM events\nWHERE ts BETWEEN $__from AND $__to\n  AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer)\n  AND (\n    (source='cowrie'      AND dst_port IN (22, 23))\n    OR (source='opencanary' AND event_type IN ('1001','2000','3000','8001','12001','14001'))\n  )\nGROUP BY 1\nHAVING COUNT(*) > 0\nORDER BY 2 DESC\n",
+          "refId": "A"
+        }
+      ],
+      "title": "🔀 Répartition par Protocole",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 21
+      },
+      "id": 10,
+      "options": {
+        "barRadius": 0.1,
+        "barWidth": 0.7,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT src_ip, COUNT(*) AS logins FROM events WHERE event_type='cowrie.login.success' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer) GROUP BY src_ip ORDER BY logins DESC LIMIT 10",
+          "refId": "A"
+        }
+      ],
+      "title": "🔓 Logins Réussis par IP",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 21
+      },
+      "id": 11,
+      "options": {
+        "barRadius": 0.1,
+        "barWidth": 0.7,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT message, COUNT(*) AS fois FROM events WHERE event_type='cowrie.command.input' AND message != '' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer) GROUP BY message ORDER BY fois DESC LIMIT 15",
+          "refId": "A"
+        }
+      ],
+      "title": "💻 Top Commandes Exécutées",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 29
+      },
+      "id": 12,
+      "options": {
+        "barRadius": 0.1,
+        "barWidth": 0.7,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT username, COUNT(*) AS total FROM events WHERE username IS NOT NULL AND username != '' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer) GROUP BY username ORDER BY total DESC LIMIT 15",
+          "refId": "A"
+        }
+      ],
+      "title": "👤 Top Usernames Essayés",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 29
+      },
+      "id": 13,
+      "options": {
+        "barRadius": 0.1,
+        "barWidth": 0.7,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT password, COUNT(*) AS total FROM events WHERE password IS NOT NULL AND password != '' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer) GROUP BY password ORDER BY total DESC LIMIT 15",
+          "refId": "A"
+        }
+      ],
+      "title": "🔑 Top Passwords Essayés",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false,
+            "minWidth": 80
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "timestamp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Heure"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "src_ip"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "IP Attaquant"
+              },
+              {
+                "id": "custom.width",
+                "value": 135
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dst_port"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Port"
+              },
+              {
+                "id": "custom.width",
+                "value": 65
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "source"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Source"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "type_label"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Événement"
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "username"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Login"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "password"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Password"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "message"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Détail"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "id": 14,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Heure"
+          }
+        ]
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "\nSELECT\n  timestamp,\n  source,\n  src_ip,\n  dst_port,\n  CASE event_type\n    WHEN 'cowrie.session.connect'       THEN '🔌 Connexion'\n    WHEN 'cowrie.login.failed'          THEN '❌ Login échoué'\n    WHEN 'cowrie.login.success'         THEN '🚨 LOGIN RÉUSSI'\n    WHEN 'cowrie.command.input'         THEN '💻 Commande'\n    WHEN 'cowrie.session.file_upload'   THEN '📤 Upload malware'\n    WHEN 'cowrie.session.file_download' THEN '📥 Download'\n    WHEN '1001'  THEN '🔐 SSH (tentative)'\n    WHEN '2000'  THEN '📟 Telnet login'\n    WHEN '3000'  THEN '📁 FTP login'\n    WHEN '8001'  THEN '🗄️ MySQL login'\n    WHEN '12001' THEN '🖱️ VNC'\n    WHEN '14001' THEN '🖥️ RDP login'\n    ELSE event_type\n  END AS type_label,\n  username,\n  password,\n  message\nFROM events\nWHERE src_ip IS NOT NULL AND src_ip != '' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer)\nORDER BY ts DESC\nLIMIT 300\n",
+          "refId": "A"
+        }
+      ],
+      "title": "📋 Journal des Attaques en Temps Réel",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "timestamp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Heure"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "src_ip"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "IP"
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "message"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Commande"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 49
+      },
+      "id": 15,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT timestamp, src_ip, message FROM events WHERE event_type='cowrie.command.input' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer) ORDER BY ts DESC LIMIT 100",
+          "refId": "A"
+        }
+      ],
+      "title": "💻 Commandes Exécutées par les Attaquants",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "timestamp"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Heure"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "src_ip"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "IP"
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "message"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Fichier / Détails"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 49
+      },
+      "id": 16,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT timestamp, src_ip, message FROM events WHERE event_type='cowrie.session.file_upload' AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer) ORDER BY ts DESC LIMIT 100",
+          "refId": "A"
+        }
+      ],
+      "title": "🗂️ Fichiers Uploadés (Malware/Backdoors)",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 59
+      },
+      "id": 20,
+      "panels": [],
+      "title": "🔍 Surveillance des Ports Honeypot",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 1
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 60
+      },
+      "id": 17,
+      "options": {
+        "barRadius": 0.1,
+        "barWidth": 0.6,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "SELECT CASE dst_port\n  WHEN 22   THEN '🔑 SSH (22)'\n  WHEN 23   THEN '📟 Telnet (23)'\n  WHEN 21   THEN '📁 FTP (21)'\n  WHEN 80   THEN '🌐 HTTP (80)'\n  WHEN 3306 THEN '🗄️ MySQL (3306)'\n  WHEN 3389 THEN '🖥️ RDP (3389)'\n  WHEN 5900 THEN '🖱️ VNC (5900)'\n  ELSE 'Autre (' || dst_port::text || ')' END AS port_service, COUNT(*) AS connexions FROM events WHERE dst_port > 0 AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer) GROUP BY dst_port ORDER BY connexions DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "🛡️ Connexions par Port Honeypot",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 12,
+            "lineWidth": 2,
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 60
+      },
+      "id": 18,
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "time_series",
+          "rawSql": "\nSELECT\n  to_timestamp(floor(ts/GREATEST($__interval_ms::bigint, 10000)::float)*GREATEST($__interval_ms::bigint, 10000)/1000.0) AS time,\n  SUM(CASE WHEN dst_port=22   THEN 1 ELSE 0 END) AS \"SSH 22\",\n  SUM(CASE WHEN dst_port=23   THEN 1 ELSE 0 END) AS \"Telnet 23\",\n  SUM(CASE WHEN dst_port=21   THEN 1 ELSE 0 END) AS \"FTP 21\",\n  SUM(CASE WHEN dst_port=80   THEN 1 ELSE 0 END) AS \"HTTP 80\",\n  SUM(CASE WHEN dst_port=3306 THEN 1 ELSE 0 END) AS \"MySQL 3306\",\n  SUM(CASE WHEN dst_port=3389 THEN 1 ELSE 0 END) AS \"RDP 3389\",\n  SUM(CASE WHEN dst_port=5900 THEN 1 ELSE 0 END) AS \"VNC 5900\"\nFROM events\nWHERE dst_port > 0 AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer)\nGROUP BY floor(ts/GREATEST($__interval_ms::bigint, 10000)::float)\nORDER BY 1 ASC\n",
+          "refId": "A"
+        }
+      ],
+      "title": "📡 Activité par Port dans le Temps",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "DATASOURCE_UID_PLACEHOLDER"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "port_service"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Port / Service"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "premiere"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "1ère Attaque"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "derniere"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Dernière Attaque"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ips_uniques"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "IPs Uniques"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "total"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Total"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 68
+      },
+      "id": 19,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Total"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "DATASOURCE_UID_PLACEHOLDER"
+          },
+          "format": "table",
+          "rawSql": "\nSELECT\n  CASE dst_port\n  WHEN 22   THEN '🔑 SSH (22)'\n  WHEN 23   THEN '📟 Telnet (23)'\n  WHEN 21   THEN '📁 FTP (21)'\n  WHEN 80   THEN '🌐 HTTP (80)'\n  WHEN 3306 THEN '🗄️ MySQL (3306)'\n  WHEN 3389 THEN '🖥️ RDP (3389)'\n  WHEN 5900 THEN '🖱️ VNC (5900)'\n  ELSE 'Autre (' || dst_port::text || ')' END AS port_service,\n  COUNT(*)                          AS total,\n  COUNT(DISTINCT src_ip)            AS ips_uniques,\n  MIN(timestamp)                    AS premiere,\n  MAX(timestamp)                    AS derniere\nFROM events\nWHERE dst_port > 0 AND ts BETWEEN $__from AND $__to AND (NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::integer)\nGROUP BY dst_port\nORDER BY total DESC\n",
+          "refId": "A"
+        }
+      ],
+      "title": "📊 Récap — Tous les Ports Honeypot",
+      "type": "table"
+    }
+  ],
+  "preload": false,
+  "refresh": "30s",
+  "schemaVersion": 42,
+  "tags": [
+    "honeypot",
+    "security",
+    "cowrie",
+    "opencanary"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "0",
+          "value": "0"
+        },
+        "includeAll": false,
+        "label": "Port",
+        "name": "port",
+        "options": [],
+        "query": "All : 0, SSH (22) : 22, Telnet (23) : 23, FTP (21) : 21, HTTP (80) : 80, MySQL (3306) : 3306, RDP (3389) : 3389, VNC (5900) : 5900",
+        "type": "custom",
+        "valuesFormat": "csv"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "🍯 Honeypot Dashboard",
+  "uid": "honeypot-v4",
+  "version": 27,
+  "weekStart": ""
+}
