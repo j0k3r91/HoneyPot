@@ -33,7 +33,7 @@ def banner(title):
 # --- SSH Cowrie (22) ---
 banner("PORT 22 — SSH Cowrie (brute force via paramiko)")
 try:
-    import paramiko
+    import paramiko  # type: ignore
     creds = [("root","123456"),("root","password"),("admin","admin"),
              ("ubuntu","ubuntu"),("test","test"),("pi","raspberry")]
     for u,p in creds:
@@ -238,7 +238,7 @@ banner("VERIFICATION EVENEMENTS EN BASE")
 print("  Attente 10s pour que le parser OpenCanary traite les logs...")
 time.sleep(10)
 try:
-    import paramiko as _paramiko
+    import paramiko as _paramiko  # type: ignore
     _c = _paramiko.SSHClient()
     _c.set_missing_host_key_policy(_paramiko.AutoAddPolicy())
     _c.connect(IP, port=2222, username='ubuntu', password='ubuntu', timeout=10)
