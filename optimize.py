@@ -136,10 +136,11 @@ PORT_F = "(NULLIF('$port','0') IS NULL OR dst_port = NULLIF('$port','0')::intege
 # OpenCanary type label (CASE)
 OC_LABEL = """CASE event_type
   WHEN '1001'  THEN 'SSH'
-  WHEN '2000'  THEN 'Telnet'
-  WHEN '3000'  THEN 'FTP'
-  WHEN '5001'  THEN 'HTTP Login'
+  WHEN '2000'  THEN 'FTP'
+  WHEN '3000'  THEN 'HTTP'
+  WHEN '3001'  THEN 'HTTP Login'
   WHEN '8001'  THEN 'MySQL'
+  WHEN '9001'  THEN 'Telnet'
   WHEN '12001' THEN 'VNC'
   WHEN '14001' THEN 'RDP'
   ELSE event_type END"""
@@ -208,7 +209,9 @@ SELECT
   SUM(CASE WHEN event_type='cowrie.session.file_upload'  THEN 1 ELSE 0 END) AS "Upload Malware",
   SUM(CASE WHEN event_type='8001'                        THEN 1 ELSE 0 END) AS "MySQL",
   SUM(CASE WHEN event_type='14001'                       THEN 1 ELSE 0 END) AS "RDP",
-  SUM(CASE WHEN event_type='12001'                       THEN 1 ELSE 0 END) AS "VNC"
+  SUM(CASE WHEN event_type='12001'                       THEN 1 ELSE 0 END) AS "VNC",
+  SUM(CASE WHEN event_type='2000'                        THEN 1 ELSE 0 END) AS "FTP",
+  SUM(CASE WHEN event_type='3000' OR event_type='3001'   THEN 1 ELSE 0 END) AS "HTTP"
 FROM events
 WHERE {TRANGE} AND {PORT_F}
 GROUP BY {GRP5}
@@ -237,9 +240,10 @@ SELECT
     WHEN event_type='8001'                     THEN '🗄️ MySQL 3306'
     WHEN event_type='14001'                    THEN '🖥️ RDP 3389'
     WHEN event_type='12001'                    THEN '🖱️ VNC 5900'
-    WHEN event_type='3000'                     THEN '📁 FTP 21'
+    WHEN event_type='2000'                     THEN '📁 FTP 21'
+    WHEN event_type='3000' OR event_type='3001' THEN '🌐 HTTP 80'
     WHEN event_type='1001'                     THEN '🔐 SSH (OpenCanary)'
-    WHEN event_type='2000'                     THEN '📟 Telnet (OpenCanary)'
+    WHEN event_type='9001'                     THEN '📠 Telnet (OpenCanary)'
   END AS protocole,
   COUNT(*) AS connexions
 FROM events
@@ -247,7 +251,7 @@ WHERE {TRANGE}
   AND {PORT_F}
   AND (
     (source='cowrie'      AND dst_port IN (22, 23))
-    OR (source='opencanary' AND event_type IN ('1001','2000','3000','8001','12001','14001'))
+    OR (source='opencanary' AND event_type IN ('1001','2000','3000','3001','8001','9001','12001','14001'))
   )
 GROUP BY 1
 HAVING COUNT(*) > 0
@@ -316,9 +320,11 @@ SELECT
     WHEN 'cowrie.session.file_upload'   THEN '📤 Upload malware'
     WHEN 'cowrie.session.file_download' THEN '📥 Download'
     WHEN '1001'  THEN '🔐 SSH (tentative)'
-    WHEN '2000'  THEN '📟 Telnet login'
-    WHEN '3000'  THEN '📁 FTP login'
+    WHEN '2000'  THEN '📁 FTP login'
+    WHEN '3000'  THEN '🌐 HTTP request'
+    WHEN '3001'  THEN '🌐 HTTP login'
     WHEN '8001'  THEN '🗄️ MySQL login'
+    WHEN '9001'  THEN '📠 Telnet login'
     WHEN '12001' THEN '🖱️ VNC'
     WHEN '14001' THEN '🖥️ RDP login'
     ELSE event_type

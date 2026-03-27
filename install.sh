@@ -1092,9 +1092,11 @@ SELECT
   SUM(CASE WHEN event_type='cowrie.login.success'        THEN 1 ELSE 0 END) AS "Logins Réussis",
   SUM(CASE WHEN event_type='cowrie.command.input'        THEN 1 ELSE 0 END) AS "Commandes",
   SUM(CASE WHEN event_type='cowrie.session.file_upload'  THEN 1 ELSE 0 END) AS "Upload Malware",
-  SUM(CASE WHEN event_type='8001'                        THEN 1 ELSE 0 END) AS "MySQL",
-  SUM(CASE WHEN event_type='14001'                       THEN 1 ELSE 0 END) AS "RDP",
-  SUM(CASE WHEN event_type='12001'                       THEN 1 ELSE 0 END) AS "VNC"
+  SUM(CASE WHEN event_type='2000'                         THEN 1 ELSE 0 END) AS "FTP",
+  SUM(CASE WHEN event_type='3000' OR event_type='3001'    THEN 1 ELSE 0 END) AS "HTTP",
+  SUM(CASE WHEN event_type='8001'                         THEN 1 ELSE 0 END) AS "MySQL",
+  SUM(CASE WHEN event_type='14001'                        THEN 1 ELSE 0 END) AS "RDP",
+  SUM(CASE WHEN event_type='12001'                        THEN 1 ELSE 0 END) AS "VNC"
 FROM events WHERE {TRANGE} AND {PORT_F}
 GROUP BY {GRP5} ORDER BY 1 ASC
 """
@@ -1115,20 +1117,21 @@ top_ips = panel(8, "🏆 Top 10 IPs Attaquantes", "barchart",
 proto_sql = f"""
 SELECT
   CASE
-    WHEN source='cowrie'      AND dst_port=22  THEN '🔑 SSH (Cowrie)'
-    WHEN source='cowrie'      AND dst_port=23  THEN '📟 Telnet (Cowrie)'
-    WHEN event_type='8001'                     THEN '🗄️ MySQL 3306'
-    WHEN event_type='14001'                    THEN '🖥️ RDP 3389'
-    WHEN event_type='12001'                    THEN '🖱️ VNC 5900'
-    WHEN event_type='3000'                     THEN '📁 FTP 21'
+    WHEN source='cowrie'      AND dst_port=22  THEN '🔑 SSH (22)'
+    WHEN source='cowrie'      AND dst_port=23  THEN '📟 Telnet (23)'
+    WHEN event_type='2000'                     THEN '📁 FTP (21)'
+    WHEN event_type='3000'  OR event_type='3001' THEN '🌐 HTTP (80)'
+    WHEN event_type='8001'                     THEN '🗄️ MySQL (3306)'
+    WHEN event_type='14001'                    THEN '🖥️ RDP (3389)'
+    WHEN event_type='12001'                    THEN '🖱️ VNC (5900)'
     WHEN event_type='1001'                     THEN '🔐 SSH (OpenCanary)'
-    WHEN event_type='2000'                     THEN '📟 Telnet (OpenCanary)'
+    WHEN event_type='9001'                     THEN '📟 Telnet (OpenCanary)'
   END AS protocole,
   COUNT(*) AS connexions
 FROM events
 WHERE {TRANGE} AND {PORT_F}
   AND ((source='cowrie' AND dst_port IN (22,23))
-       OR (source='opencanary' AND event_type IN ('1001','2000','3000','8001','12001','14001')))
+       OR (source='opencanary' AND event_type IN ('1001','2000','3000','3001','8001','9001','12001','14001')))
 GROUP BY 1 HAVING COUNT(*) > 0 ORDER BY 2 DESC
 """
 donut_proto = panel(9, "🔀 Répartition par Protocole", "piechart",
@@ -1186,11 +1189,13 @@ SELECT timestamp, source, src_ip, dst_port,
     WHEN 'cowrie.command.input'         THEN '💻 Commande'
     WHEN 'cowrie.session.file_upload'   THEN '📤 Upload malware'
     WHEN 'cowrie.session.file_download' THEN '📥 Download'
-    WHEN '1001'  THEN '🔐 SSH (tentative)'
-    WHEN '2000'  THEN '📟 Telnet login'
-    WHEN '3000'  THEN '📁 FTP login'
+    WHEN '1001'  THEN '🔐 SSH (OpenCanary)'
+    WHEN '2000'  THEN '📁 FTP login'
+    WHEN '3000'  THEN '🌐 HTTP request'
+    WHEN '3001'  THEN '🌐 HTTP login'
+    WHEN '12001' THEN '🖱️ VNC login'
     WHEN '8001'  THEN '🗄️ MySQL login'
-    WHEN '12001' THEN '🖱️ VNC'
+    WHEN '9001'  THEN '📟 Telnet login'
     WHEN '14001' THEN '🖥️ RDP login'
     ELSE event_type
   END AS type_label,
