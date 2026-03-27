@@ -510,10 +510,15 @@ ok "OpenCanary installé"
 
 # Config
 mkdir -p /etc/opencanaryd
-cat > /etc/opencanaryd/opencanary.conf << 'JEOF'
+
+# Nettoyer le hostname : garder uniquement les caractères acceptés par OpenCanary
+# (lettres, chiffres, +, -, #, _) — remplace tout autre caractère par _
+OC_HOSTNAME=$(hostname | tr -cs 'a-zA-Z0-9+#_-' '_' | sed 's/_$//')
+
+cat > /etc/opencanaryd/opencanary.conf << JEOF
 {
     "device.node_id": "opencanary-1",
-    "device.name": "$(hostname)",
+    "device.name": "${OC_HOSTNAME}",
     "device.desc": "Honeypot",
     "logger": {
         "class": "PyLogger",
@@ -566,16 +571,18 @@ touch /var/log/opencanary.log
 chmod 666 /var/log/opencanary.log
 
 # Service systemd OpenCanary
+# User=root nécessaire : OpenCanary binde des ports < 1024 (21, 80, 3306...)
+# sans passer par sudo (qui nécessite un terminal interactif)
 cat > /etc/systemd/system/opencanary.service << SVCEOF
 [Unit]
 Description=OpenCanary Honeypot
 After=network.target
 
 [Service]
-User=${REAL_USER}
-WorkingDirectory=/home/${REAL_USER}
+User=root
+WorkingDirectory=/root
 ExecStart=${OPENCANARY_ENV}/bin/opencanaryd --dev
-Restart=always
+Restart=on-failure
 RestartSec=5
 
 [Install]
