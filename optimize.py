@@ -464,9 +464,14 @@ print("[GF] Envoi du dashboard vers Grafana …")
 result = gf_post("/api/dashboards/db", {"dashboard": dashboard, "overwrite": True, "folderId": 0})
 print(f"[GF] Résultat : status={result.get('status')}  url={result.get('url')}")
 
-# Sauvegarde locale
-out = "/tmp/honeypot-dashboard-optimized.json"
-with open(out, "w") as f:
-    json.dump(dashboard, f, indent=2, ensure_ascii=False)
-print(f"[GF] JSON sauvegardé → {out}")
+# Sauvegarde locale (répertoire home si /tmp n'est pas accessible)
+for out in ("/tmp/honeypot-dashboard-optimized.json",
+            os.path.expanduser("~/honeypot-dashboard-optimized.json")):
+    try:
+        with open(out, "w") as f:
+            json.dump(dashboard, f, indent=2, ensure_ascii=False)
+        print(f"[GF] JSON sauvegardé → {out}")
+        break
+    except PermissionError:
+        pass
 print("\n✅ Optimisation terminée.")

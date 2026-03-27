@@ -160,9 +160,9 @@ SELECT pg_size_pretty(pg_total_relation_size('events'));
 
 ### Redéployer le dashboard depuis `optimize.py`
 ```bash
-# Depuis votre machine locale
-scp -P 2222 optimize.py <user>@<votre-ip>:/tmp/optimize.py
-ssh -p 2222 <user>@<votre-ip> "/home/<user>/honeypot-parser-env/bin/python3 /tmp/optimize.py"
+# Depuis le serveur :
+GF_PASS=votre-mdp-grafana PG_PASS=votre-mdp-pg \
+  /home/ubuntu/honeypot-parser-env/bin/python3 /home/ubuntu/optimize.py
 ```
 
 ---
@@ -170,9 +170,21 @@ ssh -p 2222 <user>@<votre-ip> "/home/<user>/honeypot-parser-env/bin/python3 /tmp
 ## Healthcheck complet
 
 ```bash
-# Depuis votre machine locale
-scp -P 2222 optimize.py <user>@<votre-ip>:/tmp/optimize.py
-ssh -p 2222 <user>@<votre-ip> "/home/<user>/honeypot-parser-env/bin/python3 /tmp/optimize.py"
+# Statut de tous les services
+systemctl is-active cowrie opencanary honeypot-parser grafana-server postgresql
+
+# Ports en écoute
+sudo ss -tlnp | grep -E ':22|:23|:21|:80|:3000|:3306|:3389|:5432|:5900|:2222'
+
+# Événements en base (5 dernières minutes)
+PGPASSWORD=VOTRE_MDP_PG psql -U honeypot -h localhost honeypot \
+  -c "SELECT source, event_type, COUNT(*) n FROM events GROUP BY 1,2 ORDER BY 3 DESC LIMIT 20;"
+
+# Vérifier le plugin pglog Cowrie
+sudo journalctl -u cowrie -n 20 --no-pager | grep -E 'pglog|ERROR'
+
+# Vérifier le parser OpenCanary
+sudo journalctl -u honeypot-parser -n 20 --no-pager
 ```
 
 ---
@@ -181,11 +193,11 @@ ssh -p 2222 <user>@<votre-ip> "/home/<user>/honeypot-parser-env/bin/python3 /tmp
 
 | Fichier | Rôle |
 |---|---|
-| `optimize.py` | Reconstruit et déploie le dashboard Grafana complet |
-| `cowrie-pglog.py` | Source du plugin Cowrie → PostgreSQL (à redéployer si Cowrie est réinstallé) |
-| `honeypot-parser-opencanary-only.py` | Source du parser OpenCanary (déployé sur `/opt/honeypot-to-postgres.py`) |
-| `honeypot-dashboard-v4.json` | Backup du dashboard Grafana |
-| `healthcheck.py` | Script de vérification complète de l'état du serveur |
+| `install.sh` | Script d'installation complet (Ubuntu 24.04 LTS) — 12 étapes automatisées |
+| `optimize.py` | Reconstruit et déploie le dashboard Grafana (20 panels) — embarqué dans `install.sh` |
+| `test_ports.py` | Teste tous les ports honeypot (SSH, FTP, HTTP, MySQL, RDP, VNC) depuis l'extérieur |
+| `check_db.py` | Vérifie l'état de la base PostgreSQL (événements, sources, ports) via SSH |
+| `honeypot-dashboard-v4.json` | Backup JSON du dashboard Grafana |
 
 ---
 
@@ -202,8 +214,29 @@ journalctl -u honeypot-parser --since "10 min ago" --no-pager
 # → vérifier position file
 sudo cat /var/lib/honeypot-pos.json
 
-# Réinstaller le plugin Cowrie pglog
-sudo cp /tmp/cowrie-pglog.py /home/cowrie/cowrie/src/cowrie/output/pglog.py
-sudo chown cowrie:cowrie /home/cowrie/cowrie/src/cowrie/output/pglog.py
+# Réinitialiser la position de lecture OpenCanary (force re-parse)
+echo '{"cowrie": 0, "opencanary": 0}' | sudo tee /var/lib/honeypot-pos.json
+sudo systemctl restart honeypot-parser
+
+# Cowrie n'insère plus en DB (plugin pglog)
+sudo grep -a pglog /home/cowrie/cowrie/var/log/cowrie/cowrie.log | tail -10
 sudo systemctl restart cowrie
+
+# Reset mot de passe Grafana admin
+sudo grafana-cli admin reset-admin-password NOUVEAU_MDP
 ```
+
+---
+
+## Logtypes OpenCanary
+
+| Logtype | Protocole | Port |
+|---|---|---|
+| `1001` | SSH | 22 |
+| `2000` | FTP | 21 |
+| `3000` | HTTP GET | 80 |
+| `3001` | HTTP POST (login) | 80 |
+| `8001` | MySQL | 3306 |
+| `9001` | Telnet | 23 |
+| `12001` | VNC | 5900 |
+| `14001` | RDP | 3389 |

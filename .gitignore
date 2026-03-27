@@ -23,3 +23,16 @@ Thumbs.db
 *.key
 *.pem
 secrets.txt
+
+# Scripts de debug/diagnostic temporaires (non destinés au repo public)
+diag*.py
+fix_*.py
+reset_*.py
+gen_events.py
+read_parser.py
+deploy_dash.py
+check_gf.py
+add_port_filter.py
+
+# Fichiers générés
+honeypot-dashboard-optimized.json

@@ -482,6 +482,19 @@ sudo systemctl enable opencanary
 sudo systemctl start opencanary
 ```
 
+### Logtypes OpenCanary
+
+| Logtype | Protocole | Port |
+|---|---|---|
+| `1001` | SSH | 22 |
+| `2000` | FTP | 21 |
+| `3000` | HTTP GET | 80 |
+| `3001` | HTTP POST (login) | 80 |
+| `8001` | MySQL | 3306 |
+| `9001` | Telnet | 23 |
+| `12001` | VNC | 5900 |
+| `14001` | RDP | 3389 |
+
 ---
 
 ## 7. honeypot-parser (OpenCanary → PostgreSQL)
@@ -674,7 +687,7 @@ sudo systemctl enable grafana-server
 sudo systemctl start grafana-server
 ```
 
-> Version installée : **Grafana 12.4.1**
+> Version installée : **Grafana 12** (la dernière stable disponible sur le dépôt officiel au moment de l'installation)
 
 ### Configuration HTTPS (certificat auto-signé)
 
@@ -759,32 +772,43 @@ GF_PASS=votre-mdp-grafana PG_PASS=votre-mdp-pg \
 
 ### Contenu du dashboard (20 panels)
 
-| Panel | Type | Description |
-|---|---|---|
-| Activité dans le Temps | Timeseries | Événements SSH/Telnet, MySQL, RDP, VNC, FTP, HTTP par heure |
-| Connexions SSH | Stat | Nombre total de connexions SSH (session.connect) |
-| Tentatives de Login | Stat | Toutes les tentatives (failed + success) |
-| Logins Réussis | Stat | cowrie.login.success |
-| IP Uniques | Stat | Nombre d'IP distinctes |
-| Commandes | Stat | cowrie.command.input |
-| Top 10 IP | Table | IP les plus actives |
-| Top 10 Usernames | Table | Usernames les plus tentés |
-| Top 10 Passwords | Table | Passwords les plus tentés |
-| Top 10 Commandes | Table | Commandes les plus exécutées |
-| Carte Mondiale | Geomap | Origine géographique des attaques |
-| Répartition par Source | PieChart | Cowrie vs OpenCanary |
-| Répartition par Port | PieChart | Port 22/23/21/80/3306/3389/5900 |
-| Répartition Protocoles | PieChart | Cowrie vs OpenCanary |
-| Derniers Événements | Table | Flux temps réel |
-| Logins Réussis Détail | Table | IP, user, pass, timestamp |
-| Commandes Exécutées | Table | Toutes les commandes avec source IP |
-| Upload Malware | Table | Fichiers téléchargés |
-| Tentatives MySQL | Table | Connexions sur le faux MySQL |
-| Statut Services | Text | État des services |
+| # | Panel | Type | Description |
+|---|---|---|---|
+| 1 | 🔌 Total Connexions | Stat | Nombre total d'événements sur la période sélectionnée |
+| 2 | 🌍 IPs Uniques | Stat | Nombre d'IPs distinctes ayant attaqué |
+| 3 | ⚠️ Logins Réussis ALARME | Stat | `cowrie.login.success` — rouge dès 1 |
+| 4 | 💻 Commandes Exécutées | Stat | `cowrie.command.input` |
+| 5 | 🗂️ Fichiers Uploadés (Malware) | Stat | `cowrie.session.file_upload` |
+| 6 | 🚫 Logins Échoués | Stat | `cowrie.login.failed` + OpenCanary SSH |
+| 7 | 📈 Activité dans le Temps — Toutes Sources | Timeseries | SSH/Telnet, FTP, HTTP, MySQL, RDP, VNC par bucket temporel |
+| 8 | 🏆 Top 10 IPs Attaquantes | Barchart | IP les plus actives |
+| 9 | 🔀 Répartition par Protocole | Piechart (donut) | SSH/Telnet Cowrie + FTP/HTTP/MySQL/RDP/VNC OpenCanary |
+| 10 | 🔓 Logins Réussis par IP | Barchart | IP avec `cowrie.login.success` |
+| 11 | 💻 Top Commandes Exécutées | Barchart | Commandes les plus fréquentes |
+| 12 | 👤 Top Usernames Essayés | Barchart | Identifiants les plus testés |
+| 13 | 🔑 Top Passwords Essayés | Barchart | Mots de passe les plus testés |
+| 14 | 📋 Journal des Attaques en Temps Réel | Table | 300 derniers événements toutes sources |
+| 15 | 💻 Commandes Exécutées par les Attaquants | Table | Détail des commandes shell |
+| 16 | 🗂️ Fichiers Uploadés (Malware/Backdoors) | Table | Détail des uploads |
+| — | 🔍 Surveillance des Ports Honeypot | Row | Séparateur de section |
+| 17 | 🛡️ Connexions par Port Honeypot | Barchart | Comptage par port (21/22/23/80/3306/3389/5900) |
+| 18 | 📡 Activité par Port dans le Temps | Timeseries | Évolution des connexions par port |
+| 19 | 📊 Récap — Tous les Ports Honeypot | Table | Total, IPs uniques, 1ère/dernière attaque par port |
 
-### Variable dashboard `$port_filter`
+### Variable dashboard `$port`
 
-Le dashboard expose un filtre de port configurable. Valeurs utilisables : `All`, `22`, `23`, `21`, `80`, `3306`, `3389`, `5900`.
+Le dashboard expose un filtre de port configurable via le sélecteur en haut. Valeurs disponibles :
+
+| Valeur | Filtre |
+|---|---|
+| `All` | Tous les ports (valeur `0`) |
+| `SSH (22)` | Port 22 — Cowrie |
+| `Telnet (23)` | Port 23 — Cowrie |
+| `FTP (21)` | Port 21 — OpenCanary |
+| `HTTP (80)` | Port 80 — OpenCanary |
+| `MySQL (3306)` | Port 3306 — OpenCanary |
+| `RDP (3389)` | Port 3389 — OpenCanary |
+| `VNC (5900)` | Port 5900 — OpenCanary |
 
 ---
 
@@ -832,7 +856,7 @@ PORT   SERVICE         PROCESSUS
 | **Serveur** | Votre IP publique |
 | **SSH admin** | `ssh -p 2222 <user>@<IP>` |
 | **PostgreSQL** | `localhost:5432` · db=`honeypot` · user=`honeypot` · pass=`VOTRE_MDP_PG` |
-- **Grafana** | `https://<IP>:3000` · `admin` / votre mot de passe Grafana *(cert auto-signé)* |
+| **Grafana** | `https://<IP>:3000` · `admin` / votre mot de passe Grafana *(cert auto-signé)* |
 | **Grafana datasource UID** | auto-détecté par `optimize.py` |
 | **Dashboard UID** | `honeypot-v4` |
 | **Dashboard nom** | `🍯 Honeypot Dashboard` |
