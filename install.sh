@@ -131,15 +131,30 @@ SSHD_CFG="/etc/ssh/sshd_config"
 # Sauvegarder la config originale si pas encore fait
 [[ ! -f "${SSHD_CFG}.orig" ]] && cp "${SSHD_CFG}" "${SSHD_CFG}.orig"
 
+# Ubuntu 24.04 : désactiver le socket activation (ssh.socket écoute sur 22 par défaut
+# et prend la priorité sur sshd_config Port). On bascule sur ssh.service classique.
+if systemctl is-enabled ssh.socket &>/dev/null; then
+    systemctl disable --now ssh.socket || true
+    systemctl enable ssh.service || true
+    ok "Socket activation SSH désactivé → ssh.service activé"
+fi
+
 # Remplacer ou ajouter le port
 if grep -qE '^Port ' "${SSHD_CFG}"; then
     sed -i "s/^Port .*/Port ${SSH_ADMIN_PORT}/" "${SSHD_CFG}"
 else
-    echo "Port ${SSH_ADMIN_PORT}" >> "${SSHD_CFG}"
+    sed -i "1a Port ${SSH_ADMIN_PORT}" "${SSHD_CFG}"
+fi
+
+# Activer l'authentification par mot de passe (désactivée par défaut sur Ubuntu 24.04)
+if grep -qE '^#?PasswordAuthentication' "${SSHD_CFG}"; then
+    sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' "${SSHD_CFG}"
+else
+    echo "PasswordAuthentication yes" >> "${SSHD_CFG}"
 fi
 
 systemctl restart ssh
-ok "SSH admin déplacé sur le port ${SSH_ADMIN_PORT}"
+ok "SSH admin déplacé sur le port ${SSH_ADMIN_PORT} (PasswordAuthentication activé)"
 warn "Reconnectez-vous sur le port ${SSH_ADMIN_PORT} si vous êtes déconnecté."
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -434,19 +449,24 @@ chown "${COWRIE_USER}:${COWRIE_USER}" "${COWRIE_HOME}/src/cowrie/output/pglog.py
 ok "Plugin pglog déployé"
 
 # Service systemd Cowrie
+# Note: Cowrie est installé depuis git clone, le script de démarrage est dans
+# ${COWRIE_HOME}/bin/cowrie (pas dans le venv). On doit appeler bash explicitement
+# car systemd ne peut pas exécuter directement un shell script sans shebang absolu.
 cat > /etc/systemd/system/cowrie.service << SVCEOF
 [Unit]
 Description=Cowrie SSH/Telnet Honeypot
-After=network.target
+After=network.target postgresql.service
 
 [Service]
 User=${COWRIE_USER}
 WorkingDirectory=${COWRIE_HOME}
 Environment=PATH=${COWRIE_ENV}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=${COWRIE_ENV}/bin/cowrie start
-ExecStop=${COWRIE_ENV}/bin/cowrie stop
+Environment=HOME=/home/${COWRIE_USER}
+ExecStart=/bin/bash ${COWRIE_HOME}/bin/cowrie start
+ExecStop=/bin/bash ${COWRIE_HOME}/bin/cowrie stop
 Type=forking
-Restart=always
+PIDFile=${COWRIE_HOME}/var/run/cowrie.pid
+Restart=on-failure
 RestartSec=5
 
 [Install]
