@@ -45,10 +45,12 @@ prompt_password() {
     local LABEL="$2"
     local MIN_LEN=8
     local P1 P2
+    # </dev/tty : indispensable quand le script est exécuté via curl | bash
+    # (stdin est alors le pipe, pas le terminal)
     while true; do
-        read -rsp "  ${LABEL} : " P1; echo ""
+        read -rsp "  ${LABEL} : " P1 < /dev/tty; echo ""
         [[ ${#P1} -ge $MIN_LEN ]] || { warn "Minimum ${MIN_LEN} caractères requis."; continue; }
-        read -rsp "  Confirmer ${LABEL} : " P2; echo ""
+        read -rsp "  Confirmer ${LABEL} : " P2 < /dev/tty; echo ""
         [[ "$P1" == "$P2" ]] && break || warn "Les mots de passe ne correspondent pas, réessayez."
     done
     printf -v "$VAR_NAME" '%s' "$P1"
@@ -60,7 +62,7 @@ prompt_input() {
     local LABEL="$2"
     local DEFAULT="$3"
     local VALUE
-    read -rp "  ${LABEL} [${DEFAULT}] : " VALUE
+    read -rp "  ${LABEL} [${DEFAULT}] : " VALUE < /dev/tty
     printf -v "$VAR_NAME" '%s' "${VALUE:-$DEFAULT}"
 }
 
