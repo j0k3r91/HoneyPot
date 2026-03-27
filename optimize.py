@@ -235,15 +235,15 @@ top_ips = panel(8, "🏆 Top 10 IPs Attaquantes", "barchart",
 proto_sql = f"""
 SELECT
   CASE
-    WHEN source='cowrie'      AND dst_port=22  THEN '🔑 SSH (Cowrie)'
-    WHEN source='cowrie'      AND dst_port=23  THEN '📟 Telnet (Cowrie)'
+    WHEN source='cowrie'      AND dst_port=22  THEN '🔑 SSH'
+    WHEN source='cowrie'      AND dst_port=23  THEN '📟 Telnet'
     WHEN event_type='8001'                     THEN '🗄️ MySQL 3306'
     WHEN event_type='14001'                    THEN '🖥️ RDP 3389'
     WHEN event_type='12001'                    THEN '🖱️ VNC 5900'
     WHEN event_type='2000'                     THEN '📁 FTP 21'
     WHEN event_type='3000' OR event_type='3001' THEN '🌐 HTTP 80'
-    WHEN event_type='1001'                     THEN '🔐 SSH (OpenCanary)'
-    WHEN event_type='9001'                     THEN '📠 Telnet (OpenCanary)'
+    WHEN event_type='1001'                     THEN '🔐 SSH'
+    WHEN event_type='9001'                     THEN '📠 Telnet'
   END AS protocole,
   COUNT(*) AS connexions
 FROM events
