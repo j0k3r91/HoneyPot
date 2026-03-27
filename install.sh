@@ -321,14 +321,34 @@ content = re.sub(r'(?m)^#?\s*hostname\s*=.*', 'hostname = ${COWRIE_HOSTNAME}', c
 content = re.sub(r'(?ms)(^\[ssh\].*?)(enabled\s*=\s*\w+)', r'\1enabled = true', content)
 content = re.sub(r'(?ms)(^\[ssh\].*?)(listen_port\s*=\s*\S+)', r'\1listen_port = 22', content)
 
-# Forcer listen_endpoints sur le port 22 (override la valeur par défaut 2222)
-content = re.sub(r'(?m)^.*listen_endpoints.*$', 'listen_endpoints = tcp:22:interface=0.0.0.0', content)
-if 'listen_endpoints' not in content:
-    content = re.sub(r'(?m)(^\[ssh\][\s\S]*?listen_port.*?\n)',
-                     r'\1listen_endpoints = tcp:22:interface=0.0.0.0\n', content)
+# Forcer listen_endpoints SSH sur le port 22 (uniquement dans la section [ssh])
+content = re.sub(
+    r'(?ms)(^\[ssh\])(.*?)(listen_endpoints\s*=\s*\S+)',
+    lambda m: m.group(1) + m.group(2) + 'listen_endpoints = tcp:22:interface=0.0.0.0',
+    content
+)
+# Si pas encore de listen_endpoints dans [ssh], en ajouter un après listen_port
+if not re.search(r'(?ms)^\[ssh\].*?listen_endpoints', content):
+    content = re.sub(
+        r'(?m)(^\[ssh\][\s\S]*?listen_port\s*=.*?\n)',
+        r'\1listen_endpoints = tcp:22:interface=0.0.0.0\n',
+        content
+    )
 
-# Section [telnet]
+# Section [telnet] — activer + forcer port 23
 content = re.sub(r'(?ms)(^\[telnet\].*?)(enabled\s*=\s*\w+)', r'\1enabled = true', content)
+content = re.sub(
+    r'(?ms)(^\[telnet\])(.*?)(listen_endpoints\s*=\s*\S+)',
+    lambda m: m.group(1) + m.group(2) + 'listen_endpoints = tcp:23:interface=0.0.0.0',
+    content
+)
+# Si pas encore de listen_endpoints dans [telnet], en ajouter un
+if not re.search(r'(?ms)^\[telnet\].*?listen_endpoints', content):
+    content = re.sub(
+        r'(?ms)(^\[telnet\].*?enabled\s*=\s*true\n)',
+        r'\1listen_endpoints = tcp:23:interface=0.0.0.0\n',
+        content
+    )
 
 # Append [output_pglog] si absent
 if '[output_pglog]' not in content:
@@ -787,6 +807,9 @@ if __name__ == "__main__":
         opencanary_pos = parse_file(OPENCANARY_LOG, parse_opencanary, opencanary_pos)
         save_positions(opencanary_pos)
 PYEOF
+
+# Substituer le mot de passe réel (le heredoc 'PYEOF' n'expand pas les variables)
+sed -i "s/\${PG_PASS}/${PG_PASS}/g" /opt/honeypot-to-postgres.py
 
 chmod +x /opt/honeypot-to-postgres.py
 
