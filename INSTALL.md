@@ -1,6 +1,10 @@
 # Procédure d'installation complète — Honeypot VM
 
-> **Installation rapide :** `sudo bash install.sh` sur Ubuntu 24.04 — tout est automatisé (12 étapes).
+> **Installation rapide :**
+> ```bash
+> wget -O install.sh https://raw.githubusercontent.com/j0k3r91/HoneyPot/master/install.sh
+> sudo bash install.sh
+> ```
 > Ce document détaille chaque étape pour une installation manuelle ou la compréhension du système.
 
 > **Objectif :** Installer from scratch un honeypot avec Cowrie, OpenCanary, PostgreSQL et Grafana.  

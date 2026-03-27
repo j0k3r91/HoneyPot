@@ -5,7 +5,7 @@
 Sur une machine fraîche **Ubuntu 24.04 LTS** :
 
 ```bash
-# Copier install.sh sur le serveur puis :
+wget -O install.sh https://raw.githubusercontent.com/j0k3r91/HoneyPot/master/install.sh
 sudo bash install.sh
 ```
 
