@@ -448,10 +448,15 @@ PYEOF
 chown "${COWRIE_USER}:${COWRIE_USER}" "${COWRIE_HOME}/src/cowrie/output/pglog.py"
 ok "Plugin pglog déployé"
 
+# Créer les répertoires nécessaires au démarrage de Cowrie
+sudo -u "${COWRIE_USER}" mkdir -p "${COWRIE_HOME}/var/log/cowrie"
+sudo -u "${COWRIE_USER}" mkdir -p "${COWRIE_HOME}/var/run/cowrie"
+ok "Répertoires var/ créés"
+
 # Service systemd Cowrie
-# Note: Cowrie est installé depuis git clone, le script de démarrage est dans
-# ${COWRIE_HOME}/bin/cowrie (pas dans le venv). On doit appeler bash explicitement
-# car systemd ne peut pas exécuter directement un shell script sans shebang absolu.
+# On utilise twistd --nodaemon (Type=simple) pour éviter toute dépendance
+# sur le script bin/cowrie du git clone (chemin variable selon la version).
+# twistd est installé par requirements.txt (paquet Twisted).
 cat > /etc/systemd/system/cowrie.service << SVCEOF
 [Unit]
 Description=Cowrie SSH/Telnet Honeypot
@@ -460,14 +465,17 @@ After=network.target postgresql.service
 [Service]
 User=${COWRIE_USER}
 WorkingDirectory=${COWRIE_HOME}
-Environment=PATH=${COWRIE_ENV}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PYTHONPATH=${COWRIE_HOME}/src
 Environment=HOME=/home/${COWRIE_USER}
-ExecStart=/bin/bash ${COWRIE_HOME}/bin/cowrie start
-ExecStop=/bin/bash ${COWRIE_HOME}/bin/cowrie stop
-Type=forking
-PIDFile=${COWRIE_HOME}/var/run/cowrie.pid
+ExecStart=${COWRIE_ENV}/bin/twistd --umask=0022 --nodaemon \
+    --logfile=${COWRIE_HOME}/var/log/cowrie/cowrie.log \
+    cowrie
+ExecStop=/bin/kill -TERM \$MAINPID
+Type=simple
 Restart=on-failure
 RestartSec=5
+StandardOutput=null
+StandardError=null
 
 [Install]
 WantedBy=multi-user.target
