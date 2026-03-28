@@ -33,8 +33,9 @@ PG_DB="honeypot"
 COWRIE_USER="cowrie"
 COWRIE_HOME="/home/cowrie/cowrie"
 COWRIE_ENV="${COWRIE_HOME}/cowrie-env"
+OPENCANARY_USER="opencanary"
+OPENCANARY_ENV="/home/opencanary/opencanary-env"
 REAL_USER="${SUDO_USER:-ubuntu}"
-OPENCANARY_ENV="/home/${REAL_USER}/opencanary-env"
 PARSER_ENV="/home/${REAL_USER}/honeypot-parser-env"
 GRAFANA_PORT=3000
 # ==============================================================================
@@ -303,14 +304,8 @@ sudo -u "${COWRIE_USER}" "${COWRIE_ENV}/bin/pip" install -q -e "${COWRIE_HOME}"
 sudo -u "${COWRIE_USER}" "${COWRIE_ENV}/bin/pip" install -q psycopg2-binary
 ok "Dépendances Cowrie installées (+ plugin twistd + psycopg2-binary)"
 
-# setcap : autorise python3 à écouter sur les ports < 1024 sans root ni authbind.
-# Cowrie tourne en user 'cowrie' (non-root) et se bind directement sur 22/23.
-PY3=$(readlink -f "$(which python3)")
-setcap cap_net_bind_service=ep "${PY3}"
-ok "setcap cap_net_bind_service appliqué sur ${PY3}"
-
 # Créer cowrie.cfg minimal (overrides uniquement — Cowrie fusionne .dist + .cfg)
-# setcap cap_net_bind_service permet l'écoute sur 22/23 sans root.
+# AmbientCapabilities=CAP_NET_BIND_SERVICE dans le service systemd permet l'écoute sur 22/23 sans root.
 [[ ! -f "${COWRIE_HOME}/etc/cowrie.cfg.dist" ]] && die "cowrie.cfg.dist introuvable — vérifiez le clone"
 cat > "${COWRIE_HOME}/etc/cowrie.cfg" << CFGEOF
 [honeypot]
@@ -451,7 +446,7 @@ ok "Répertoires var/ créés"
 
 # Service systemd Cowrie
 # Cowrie tourne en user non-root (securite : Cowrie refuse explicitement root).
-# setcap cap_net_bind_service sur python3 permet l'ecoute sur 22/23 sans root.
+# AmbientCapabilities=CAP_NET_BIND_SERVICE permet l'ecoute sur 22/23 sans root ni setcap.
 # twistd est installe par requirements.txt (paquet Twisted).
 cat > /etc/systemd/system/cowrie.service << SVCEOF
 [Unit]
@@ -460,6 +455,8 @@ After=network.target postgresql.service
 
 [Service]
 User=${COWRIE_USER}
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 WorkingDirectory=${COWRIE_HOME}
 Environment=PYTHONPATH=${COWRIE_HOME}/src
 Environment=HOME=/home/${COWRIE_USER}
@@ -485,13 +482,19 @@ ok "Service cowrie.service créé"
 step "7/12 — OpenCanary (FTP / HTTP / MySQL / RDP / VNC)"
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+# Utilisateur dédié (non-root)
+if ! id "${OPENCANARY_USER}" &>/dev/null; then
+    adduser --disabled-password --gecos "" --home "/home/${OPENCANARY_USER}" "${OPENCANARY_USER}"
+    ok "Utilisateur '${OPENCANARY_USER}' créé"
+fi
+
 # Virtualenv
 if [[ ! -x "${OPENCANARY_ENV}/bin/python3" ]]; then
-    python3 -m venv "${OPENCANARY_ENV}"
+    sudo -u "${OPENCANARY_USER}" python3 -m venv "${OPENCANARY_ENV}"
     ok "Virtualenv opencanary-env créé"
 fi
-"${OPENCANARY_ENV}/bin/pip" install -q --upgrade pip
-"${OPENCANARY_ENV}/bin/pip" install -q opencanary
+sudo -u "${OPENCANARY_USER}" "${OPENCANARY_ENV}/bin/pip" install -q --upgrade pip
+sudo -u "${OPENCANARY_USER}" "${OPENCANARY_ENV}/bin/pip" install -q opencanary
 ok "OpenCanary installé"
 
 # Config
@@ -551,22 +554,25 @@ cat > /etc/opencanaryd/opencanary.conf << JEOF
     "portscan.enabled": false
 }
 JEOF
+chown -R "${OPENCANARY_USER}:${OPENCANARY_USER}" /etc/opencanaryd
 
 # Créer le fichier log + droits
 touch /var/log/opencanary.log
-chmod 666 /var/log/opencanary.log
+chown "${OPENCANARY_USER}:${OPENCANARY_USER}" /var/log/opencanary.log
+chmod 644 /var/log/opencanary.log
 
 # Service systemd OpenCanary
-# User=root nécessaire : OpenCanary binde des ports < 1024 (21, 80, 3306...)
-# sans passer par sudo (qui nécessite un terminal interactif)
+# AmbientCapabilities=CAP_NET_BIND_SERVICE permet le binding 21/80 sans root.
 cat > /etc/systemd/system/opencanary.service << SVCEOF
 [Unit]
 Description=OpenCanary Honeypot
 After=network.target
 
 [Service]
-User=root
-WorkingDirectory=/root
+User=${OPENCANARY_USER}
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+WorkingDirectory=/home/${OPENCANARY_USER}
 ExecStart=${OPENCANARY_ENV}/bin/opencanaryd --dev
 Restart=on-failure
 RestartSec=5
