@@ -62,7 +62,7 @@ sudo apt install -y \
 # Créer l'utilisateur Cowrie (dédié, sans accès sudo)
 sudo adduser --disabled-password cowrie
 ```
-
+> **Mots de passe :** le script `install.sh` refuse les caractères `$`, `` ` ``, `\`, `"` et `'` dans les mots de passe (PostgreSQL et Grafana) car ils sont incompatibles avec les heredocs bash, SQL et JSON utilisés en interne. Utilisez des caractères alphanumériques et `@`, `!`, `#`, `%`, `+`, `-`, `=`.
 ### Pare-feu UFW
 
 ```bash
@@ -554,7 +554,7 @@ import psycopg2, psycopg2.extras
 
 PG_CONFIG = {
     "host": "localhost", "dbname": "honeypot",
-    "user": "honeypot", "password": "VOTRE_MDP_PG",
+    "user": "honeypot", "password": os.environ.get("PG_PASS", ""),
 }
 BATCH_SIZE     = 500
 OPENCANARY_LOG = "/var/log/opencanary.log"
@@ -675,6 +675,16 @@ if __name__ == "__main__":
         save_positions(opencanary_pos)
 ```
 
+### Fichier d'environnement (mot de passe PostgreSQL)
+
+Le mot de passe PostgreSQL est transmis au script via un fichier d'environnement systemd (évite toute substitution shell dangereuse) :
+
+```bash
+# Créer le fichier (remplacer VOTRE_MDP_PG par le vrai mot de passe)
+echo 'PG_PASS=VOTRE_MDP_PG' | sudo tee /etc/honeypot-parser.env
+sudo chmod 600 /etc/honeypot-parser.env
+```
+
 ### Service systemd honeypot-parser
 
 Créer `/etc/systemd/system/honeypot-parser.service` :
@@ -686,6 +696,7 @@ After=network.target postgresql.service
 
 [Service]
 Type=simple
+EnvironmentFile=/etc/honeypot-parser.env
 ExecStart=/home/ubuntu/honeypot-parser-env/bin/python3 /opt/honeypot-to-postgres.py
 Restart=always
 User=root
@@ -693,6 +704,8 @@ User=root
 [Install]
 WantedBy=multi-user.target
 ```
+
+> Le script lit `PG_PASS` via `os.environ.get("PG_PASS", "")` — le mot de passe n'est jamais en clair dans le script.
 
 ```bash
 sudo systemctl daemon-reload

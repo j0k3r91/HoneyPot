@@ -108,12 +108,14 @@ FTP/HTTP/MySQL/RDP/VNC attacks                              [PostgreSQL]
 
 ### Cowrie — ports actifs
 
-Cowrie écoute directement sur les ports `22` (SSH) et `23` (Telnet) grâce à la capability `cap_net_bind_service` accordée à Python :
+Cowrie écoute directement sur les ports `22` (SSH) et `23` (Telnet) sans root. La capability `CAP_NET_BIND_SERVICE` est accordée **au service systemd** via `AmbientCapabilities` (scopée au processus Cowrie uniquement — aucune modification du binaire Python système) :
 
-```bash
-# Vérifier la capability
-getcap $(readlink -f $(which python3))
-# → /usr/bin/python3.12 cap_net_bind_service=ep
+```ini
+# /etc/systemd/system/cowrie.service
+[Service]
+User=cowrie
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 ```
 
 ```ini
@@ -207,6 +209,8 @@ sudo journalctl -u honeypot-parser -n 20 --no-pager
 | `test_ports.py` | Teste tous les ports honeypot (SSH, FTP, HTTP, MySQL, RDP, VNC) depuis l'extérieur |
 | `honeypot-dashboard-v4.json` | Backup JSON du dashboard Grafana |
 
+> **Mots de passe :** `install.sh` refuse les caractères `$`, `` ` ``, `\`, `"` et `'` (incompatibles avec les heredocs bash, SQL et JSON internes). Utilisez des caractères alphanumériques et `@`, `!`, `#`, `%`, `+`, `-`, `=`.
+
 ---
 
 ## Dépannage rapide
@@ -217,6 +221,11 @@ sudo grep -a 'pglog' /home/cowrie/cowrie/var/log/cowrie/cowrie.log | tail -10
 
 # Parser OpenCanary bloqué
 journalctl -u honeypot-parser --since "10 min ago" --no-pager
+
+# Mot de passe PostgreSQL du parser (si modifié)
+echo 'PG_PASS=NOUVEAU_MDP' | sudo tee /etc/honeypot-parser.env
+sudo chmod 600 /etc/honeypot-parser.env
+sudo systemctl restart honeypot-parser
 
 # Pas de nouvelles données en DB
 # → vérifier position file
