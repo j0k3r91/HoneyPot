@@ -107,9 +107,18 @@ FTP/HTTP/MySQL/RDP/VNC attacks                              [PostgreSQL]
 | **PostgreSQL** | `/etc/postgresql/16/main/postgresql.conf` |
 
 ### Cowrie — ports actifs
+
+Cowrie écoute directement sur les ports `22` (SSH) et `23` (Telnet) grâce à la capability `cap_net_bind_service` accordée à Python :
+
+```bash
+# Vérifier la capability
+getcap $(readlink -f $(which python3))
+# → /usr/bin/python3.12 cap_net_bind_service=ep
+```
+
 ```ini
 # /home/cowrie/cowrie/etc/cowrie.cfg
-[shell]
+[ssh]
 listen_endpoints = tcp:22:interface=0.0.0.0   # SSH
 [telnet]
 listen_endpoints = tcp:23:interface=0.0.0.0   # Telnet
@@ -196,7 +205,6 @@ sudo journalctl -u honeypot-parser -n 20 --no-pager
 | `install.sh` | Script d'installation complet (Ubuntu 24.04 LTS) — 12 étapes automatisées |
 | `optimize.py` | Reconstruit et déploie le dashboard Grafana (20 panels) — embarqué dans `install.sh` |
 | `test_ports.py` | Teste tous les ports honeypot (SSH, FTP, HTTP, MySQL, RDP, VNC) depuis l'extérieur |
-| `check_db.py` | Vérifie l'état de la base PostgreSQL (événements, sources, ports) via SSH |
 | `honeypot-dashboard-v4.json` | Backup JSON du dashboard Grafana |
 
 ---

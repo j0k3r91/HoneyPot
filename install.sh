@@ -121,7 +121,7 @@ apt-get install -y -qq \
     git curl wget net-tools \
     postgresql postgresql-contrib \
     build-essential libssl-dev libffi-dev \
-    libpq-dev ufw openssl authbind
+    libpq-dev ufw openssl libcap2-bin
 
 ok "Paquets installés"
 
@@ -198,6 +198,8 @@ ufw --force enable
 ok "Pare-feu UFW activé — $(ufw status | grep -c ALLOW) règles configurées"
 info "Règles actives :"
 ufw status | grep -E 'ALLOW|DENY' | sed 's/^/    /'
+
+ufw --force reload
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 step "4/12 — PostgreSQL : base de données + schéma"
@@ -301,6 +303,12 @@ sudo -u "${COWRIE_USER}" "${COWRIE_ENV}/bin/pip" install -q -e "${COWRIE_HOME}"
 sudo -u "${COWRIE_USER}" "${COWRIE_ENV}/bin/pip" install -q psycopg2-binary
 ok "Dépendances Cowrie installées (+ plugin twistd + psycopg2-binary)"
 
+# setcap : autorise python3 à écouter sur les ports < 1024 sans root ni authbind.
+# Cowrie tourne en user 'cowrie' (non-root) et se bind directement sur 22/23.
+PY3=$(readlink -f "$(which python3)")
+setcap cap_net_bind_service=ep "${PY3}"
+ok "setcap cap_net_bind_service appliqué sur ${PY3}"
+
 # Générer cowrie.cfg depuis le template
 [[ ! -f "${COWRIE_HOME}/etc/cowrie.cfg.dist" ]] && die "cowrie.cfg.dist introuvable — vérifiez le clone"
 cp "${COWRIE_HOME}/etc/cowrie.cfg.dist" "${COWRIE_HOME}/etc/cowrie.cfg"
@@ -317,38 +325,28 @@ with open(cfg_path) as f:
 # Section [honeypot] — hostname
 content = re.sub(r'(?m)^#?\s*hostname\s*=.*', 'hostname = ${COWRIE_HOSTNAME}', content)
 
-# Section [ssh]
+# Section [ssh] — activer + écoute directe sur port 22 (setcap autorise < 1024)
 content = re.sub(r'(?ms)(^\[ssh\].*?)(enabled\s*=\s*\w+)', r'\1enabled = true', content)
-content = re.sub(r'(?ms)(^\[ssh\].*?)(listen_port\s*=\s*\S+)', r'\1listen_port = 22', content)
-
-# Forcer listen_endpoints SSH sur le port 22 (uniquement dans la section [ssh])
-content = re.sub(
-    r'(?ms)(^\[ssh\])(.*?)(listen_endpoints\s*=\s*\S+)',
-    lambda m: m.group(1) + m.group(2) + 'listen_endpoints = tcp:22:interface=0.0.0.0',
-    content
-)
-# Si pas encore de listen_endpoints dans [ssh], en ajouter un après listen_port
+# Forcer listen_port ET listen_endpoints (listen_endpoints prime sur listen_port)
+for pat in [r'(?ms)(^\[ssh\].*?)(#?\s*listen_port\s*=\s*\S+)',
+             r'(?ms)(^\[ssh\].*?)(#?\s*listen_endpoints\s*=\s*\S+)']:
+    if re.search(pat, content):
+        content = re.sub(pat,
+            lambda m, p=pat: m.group(1) + ('listen_port = 22' if 'listen_port' in p else 'listen_endpoints = tcp:22:interface=0.0.0.0'),
+            content, count=1)
 if not re.search(r'(?ms)^\[ssh\].*?listen_endpoints', content):
-    content = re.sub(
-        r'(?m)(^\[ssh\][\s\S]*?listen_port\s*=.*?\n)',
-        r'\1listen_endpoints = tcp:22:interface=0.0.0.0\n',
-        content
-    )
+    content = re.sub(r'(?ms)(^\[ssh\].*?enabled\s*=\s*true)', r'\1\nlisten_endpoints = tcp:22:interface=0.0.0.0', content, count=1)
 
-# Section [telnet] — activer + forcer port 23
+# Section [telnet] — activer + écoute directe sur port 23
 content = re.sub(r'(?ms)(^\[telnet\].*?)(enabled\s*=\s*\w+)', r'\1enabled = true', content)
-content = re.sub(
-    r'(?ms)(^\[telnet\])(.*?)(listen_endpoints\s*=\s*\S+)',
-    lambda m: m.group(1) + m.group(2) + 'listen_endpoints = tcp:23:interface=0.0.0.0',
-    content
-)
-# Si pas encore de listen_endpoints dans [telnet], en ajouter un
+for pat in [r'(?ms)(^\[telnet\].*?)(#?\s*listen_port\s*=\s*\S+)',
+             r'(?ms)(^\[telnet\].*?)(#?\s*listen_endpoints\s*=\s*\S+)']:
+    if re.search(pat, content):
+        content = re.sub(pat,
+            lambda m, p=pat: m.group(1) + ('listen_port = 23' if 'listen_port' in p else 'listen_endpoints = tcp:23:interface=0.0.0.0'),
+            content, count=1)
 if not re.search(r'(?ms)^\[telnet\].*?listen_endpoints', content):
-    content = re.sub(
-        r'(?ms)(^\[telnet\].*?enabled\s*=\s*true\n)',
-        r'\1listen_endpoints = tcp:23:interface=0.0.0.0\n',
-        content
-    )
+    content = re.sub(r'(?ms)(^\[telnet\].*?enabled\s*=\s*true)', r'\1\nlisten_endpoints = tcp:23:interface=0.0.0.0', content, count=1)
 
 # Append [output_pglog] si absent
 if '[output_pglog]' not in content:
@@ -484,17 +482,10 @@ sudo -u "${COWRIE_USER}" mkdir -p "${COWRIE_HOME}/var/log/cowrie"
 sudo -u "${COWRIE_USER}" mkdir -p "${COWRIE_HOME}/var/run/cowrie"
 ok "Répertoires var/ créés"
 
-# Authbind : autoriser l'user cowrie à binder les ports 22 et 23 (< 1024)
-# sans root (nécessaire pour systemd Type=simple avec User=cowrie)
-touch /etc/authbind/byport/22 /etc/authbind/byport/23
-chown "${COWRIE_USER}" /etc/authbind/byport/22 /etc/authbind/byport/23
-chmod 500 /etc/authbind/byport/22 /etc/authbind/byport/23
-ok "authbind configuré pour ports 22 et 23"
-
 # Service systemd Cowrie
-# On utilise twistd --nodaemon (Type=simple) pour éviter toute dépendance
-# sur le script bin/cowrie du git clone (chemin variable selon la version).
-# twistd est installé par requirements.txt (paquet Twisted).
+# Cowrie tourne en user non-root (securite : Cowrie refuse explicitement root).
+# setcap cap_net_bind_service sur python3 permet l'ecoute sur 22/23 sans root.
+# twistd est installe par requirements.txt (paquet Twisted).
 cat > /etc/systemd/system/cowrie.service << SVCEOF
 [Unit]
 Description=Cowrie SSH/Telnet Honeypot
@@ -505,10 +496,10 @@ User=${COWRIE_USER}
 WorkingDirectory=${COWRIE_HOME}
 Environment=PYTHONPATH=${COWRIE_HOME}/src
 Environment=HOME=/home/${COWRIE_USER}
-ExecStart=/usr/bin/authbind --deep ${COWRIE_ENV}/bin/twistd --umask=0022 --nodaemon \
+ExecStart=${COWRIE_ENV}/bin/twistd --umask=0022 --nodaemon \
     --logfile=${COWRIE_HOME}/var/log/cowrie/cowrie.log \
     cowrie
-ExecStop=/bin/kill -TERM \$MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
 Type=simple
 Restart=on-failure
 RestartSec=5

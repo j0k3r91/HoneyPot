@@ -233,6 +233,24 @@ debug = false
 
 > Tous les autres `[output_*]` restent `enabled = false`.
 
+### Ports 22/23 sans root — setcap
+
+Cowrie tourne en tant qu'utilisateur `cowrie` (non-root). Pour lui permettre d'écouter directement sur les ports 22 et 23 (< 1024), on applique la capability `cap_net_bind_service` sur l'interpréteur Python :
+
+```bash
+# Trouver le chemin réel de python3
+PY3=$(readlink -f $(which python3))
+
+# Accorder la capability (survit aux reboots)
+sudo setcap cap_net_bind_service=ep $PY3
+
+# Vérifier
+getcap $PY3
+# → /usr/bin/python3.12 cap_net_bind_service=ep
+```
+
+> Ce mécanisme est plus propre qu'authbind ou iptables NAT : pas de règles de redirection, pas de dépendance système supplémentaire.
+
 ### Service systemd Cowrie
 
 Créer `/etc/systemd/system/cowrie.service` :
@@ -240,7 +258,7 @@ Créer `/etc/systemd/system/cowrie.service` :
 ```ini
 [Unit]
 Description=Cowrie SSH/Telnet Honeypot
-After=network.target
+After=network.target postgresql.service
 
 [Service]
 User=cowrie

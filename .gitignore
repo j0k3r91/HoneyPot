@@ -24,15 +24,23 @@ Thumbs.db
 *.pem
 secrets.txt
 
-# Scripts de debug/diagnostic temporaires (non destinés au repo public)
+# Scripts de debug/diagnostic (non destinés au repo public)
+# Patterns génériques
+_diag*.py
+_fix*.py
+_patch*.py
+_revert*.py
 diag*.py
 fix_*.py
 reset_*.py
+# Scripts nommés explicitement
+check_db.py
+check_gf.py
 gen_events.py
 read_parser.py
 deploy_dash.py
-check_gf.py
 add_port_filter.py
+diag_http.py
 
-# Fichiers générés
+# Fichiers générés localement
 honeypot-dashboard-optimized.json
