@@ -233,23 +233,18 @@ debug = false
 
 > Tous les autres `[output_*]` restent `enabled = false`.
 
-### Ports 22/23 sans root — setcap
+### Ports 22/23 sans root — AmbientCapabilities (systemd)
 
-Cowrie tourne en tant qu'utilisateur `cowrie` (non-root). Pour lui permettre d'écouter directement sur les ports 22 et 23 (< 1024), on applique la capability `cap_net_bind_service` sur l'interpréteur Python :
+Cowrie tourne en tant qu'utilisateur `cowrie` (non-root). La capability `CAP_NET_BIND_SERVICE` est accordée **directement au service systemd** via `AmbientCapabilities`, ce qui est plus sécurisé que `setcap` sur le binaire Python (qui accorderait la capability à n'importe quel script Python sur la machine) :
 
-```bash
-# Trouver le chemin réel de python3
-PY3=$(readlink -f $(which python3))
-
-# Accorder la capability (survit aux reboots)
-sudo setcap cap_net_bind_service=ep $PY3
-
-# Vérifier
-getcap $PY3
-# → /usr/bin/python3.12 cap_net_bind_service=ep
+```ini
+[Service]
+User=cowrie
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 ```
 
-> Ce mécanisme est plus propre qu'authbind ou iptables NAT : pas de règles de redirection, pas de dépendance système supplémentaire.
+> La capability est scoped au processus Cowrie uniquement — aucune modification du binaire Python système.
 
 ### Service systemd Cowrie
 
@@ -262,12 +257,17 @@ After=network.target postgresql.service
 
 [Service]
 User=cowrie
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 WorkingDirectory=/home/cowrie/cowrie
-Environment=PATH=/home/cowrie/cowrie/cowrie-env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/home/cowrie/cowrie/cowrie-env/bin/cowrie start
-ExecStop=/home/cowrie/cowrie/cowrie-env/bin/cowrie stop
-Type=forking
-Restart=always
+Environment=PYTHONPATH=/home/cowrie/cowrie/src
+Environment=HOME=/home/cowrie
+ExecStart=/home/cowrie/cowrie/cowrie-env/bin/twistd --umask=0022 --nodaemon \
+    --logfile=/home/cowrie/cowrie/var/log/cowrie/cowrie.log \
+    cowrie
+ExecStop=/bin/kill -TERM $MAINPID
+Type=simple
+Restart=on-failure
 RestartSec=5
 
 [Install]
@@ -411,16 +411,17 @@ sudo journalctl -u cowrie -n 20 | grep pglog
 ### Installation
 
 ```bash
-# Créer l'environnement virtuel OpenCanary
-python3 -m venv /home/ubuntu/opencanary-env
-source /home/ubuntu/opencanary-env/bin/activate
-pip install opencanary
-deactivate
+# Créer l'utilisateur dédié (non-root)
+sudo adduser --disabled-password --gecos "" opencanary
+
+# Créer l'environnement virtuel sous cet utilisateur
+sudo -u opencanary python3 -m venv /home/opencanary/opencanary-env
+sudo -u opencanary /home/opencanary/opencanary-env/bin/pip install -q opencanary
 ```
 
 ### Configuration
 
-Créer `/etc/opencanaryd/opencanary.conf` :
+Créer `/etc/opencanaryd/opencanary.conf` (owned par `opencanary`) :
 
 ```bash
 sudo mkdir -p /etc/opencanaryd
@@ -472,9 +473,16 @@ sudo tee /etc/opencanaryd/opencanary.conf > /dev/null << 'EOF'
     "portscan.enabled": false
 }
 EOF
+sudo chown -R opencanary:opencanary /etc/opencanaryd
+
+# Créer le fichier log avec les bons droits
+sudo touch /var/log/opencanary.log
+sudo chown opencanary:opencanary /var/log/opencanary.log
 ```
 
 ### Service systemd OpenCanary
+
+OpenCanary est lancé via `twistd` **directement** (sans passer par le wrapper `opencanaryd` qui appelle `sudo` en interne et est incompatible avec un user non-root). La capability `CAP_NET_BIND_SERVICE` permet l'écoute sur les ports 21 et 80 sans root.
 
 Créer `/etc/systemd/system/opencanary.service` :
 
@@ -484,15 +492,19 @@ Description=OpenCanary Honeypot
 After=network.target
 
 [Service]
-User=ubuntu
-WorkingDirectory=/home/ubuntu
-ExecStart=/home/ubuntu/opencanary-env/bin/opencanaryd --dev
-Restart=always
+User=opencanary
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+WorkingDirectory=/home/opencanary
+ExecStart=/home/opencanary/opencanary-env/bin/twistd -noy /home/opencanary/opencanary-env/bin/opencanary.tac --pidfile /tmp/opencanaryd.pid
+Restart=on-failure
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+> **Pourquoi `twistd` directement ?** Le script `opencanaryd` contient une fonction `sudo()` interne qui appelle le vrai `sudo` quand `EUID != 0`, ce qui échoue dans un service systemd sans TTY. En appelant `twistd` directement, on bypasse ce wrapper.
 
 ```bash
 sudo systemctl daemon-reload
