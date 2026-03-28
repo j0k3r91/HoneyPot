@@ -1021,7 +1021,7 @@ print("[GF] Construction du dashboard …")
 
 stat_connexions = panel(1, "🔌 Total Connexions", "stat",
     {"h":4,"w":4,"x":0,"y":0},
-    [tbl("A", f"SELECT COUNT(*) AS value FROM events WHERE {TRANGE} AND {PORT_F}")],
+    [tbl("A", f"SELECT COUNT(*) AS value FROM events WHERE {TRANGE} AND {PORT_F} AND NOT (source='opencanary' AND event_type='1001')")],
     stat_opts(), stat_fc([{"color":"blue","value":0},{"color":"orange","value":100},{"color":"red","value":1000}]))
 
 stat_ips = panel(2, "🌍 IPs Uniques", "stat",
@@ -1046,7 +1046,7 @@ stat_uploads = panel(5, "🗂️ Fichiers Uploadés (Malware)", "stat",
 
 stat_logins_fail = panel(6, "🚫 Logins Échoués", "stat",
     {"h":4,"w":4,"x":20,"y":0},
-    [tbl("A", f"SELECT COUNT(*) AS value FROM events WHERE event_type IN ('cowrie.login.failed','1001') AND {TRANGE} AND {PORT_F}")],
+    [tbl("A", f"SELECT COUNT(*) AS value FROM events WHERE event_type = 'cowrie.login.failed' AND {TRANGE} AND {PORT_F}")],
     stat_opts(), stat_fc([{"color":"blue","value":0},{"color":"orange","value":100},{"color":"red","value":500}]))
 
 ts_global_sql = f"""
@@ -1079,24 +1079,28 @@ top_ips = panel(8, "🏆 Top 10 IPs Attaquantes", "barchart",
     {"defaults":{"color":{"mode":"palette-classic"},"custom":{"fillOpacity":80,"lineWidth":1}},"overrides":[]})
 
 proto_sql = f"""
-SELECT
-  CASE
-    WHEN source='cowrie'      AND dst_port=22  THEN '🔑 SSH (22)'
-    WHEN source='cowrie'      AND dst_port=23  THEN '📟 Telnet (23)'
-    WHEN event_type='2000'                     THEN '📁 FTP (21)'
-    WHEN event_type='3000'  OR event_type='3001' THEN '🌐 HTTP (80)'
-    WHEN event_type='8001'                     THEN '🗄️ MySQL (3306)'
-    WHEN event_type='14001'                    THEN '🖥️ RDP (3389)'
-    WHEN event_type='12001'                    THEN '🖱️ VNC (5900)'
-    WHEN event_type='1001'                     THEN '🔐 SSH (OpenCanary)'
-    WHEN event_type='9001'                     THEN '📟 Telnet (OpenCanary)'
-  END AS protocole,
-  COUNT(*) AS connexions
-FROM events
-WHERE {TRANGE} AND {PORT_F}
-  AND ((source='cowrie' AND dst_port IN (22,23))
-       OR (source='opencanary' AND event_type IN ('1001','2000','3000','3001','8001','9001','12001','14001')))
-GROUP BY 1 HAVING COUNT(*) > 0 ORDER BY 2 DESC
+SELECT protocole, connexions
+FROM (
+  SELECT
+    CASE
+      WHEN source='cowrie'      AND dst_port=22  THEN '🔑 SSH (22)'
+      WHEN source='cowrie'      AND dst_port=23  THEN '📟 Telnet (23)'
+      WHEN event_type='2000'                     THEN '📁 FTP (21)'
+      WHEN event_type='3000'  OR event_type='3001' THEN '🌐 HTTP (80)'
+      WHEN event_type='8001'                     THEN '🗄️ MySQL (3306)'
+      WHEN event_type='14001'                    THEN '🖥️ RDP (3389)'
+      WHEN event_type='12001'                    THEN '🖱️ VNC (5900)'
+      WHEN event_type='9001'                     THEN '📟 Telnet (OpenCanary)'
+    END AS protocole,
+    COUNT(*) AS connexions
+  FROM events
+  WHERE {TRANGE} AND {PORT_F}
+    AND ((source='cowrie' AND dst_port IN (22,23))
+         OR (source='opencanary' AND event_type IN ('2000','3000','3001','8001','9001','12001','14001')))
+  GROUP BY 1
+) sub
+WHERE protocole IS NOT NULL AND connexions > 0
+ORDER BY connexions DESC
 """
 donut_proto = panel(9, "🔀 Répartition par Protocole", "piechart",
     {"h":8,"w":10,"x":14,"y":13},
@@ -1153,7 +1157,7 @@ SELECT timestamp, source, src_ip, dst_port,
     WHEN 'cowrie.command.input'         THEN '💻 Commande'
     WHEN 'cowrie.session.file_upload'   THEN '📤 Upload malware'
     WHEN 'cowrie.session.file_download' THEN '📥 Download'
-    WHEN '1001'  THEN '🔐 SSH (OpenCanary)'
+    WHEN '1001'  THEN '⚙️ Démarrage OpenCanary'
     WHEN '2000'  THEN '📁 FTP login'
     WHEN '3000'  THEN '🌐 HTTP request'
     WHEN '3001'  THEN '🌐 HTTP login'
