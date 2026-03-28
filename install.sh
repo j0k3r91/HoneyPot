@@ -499,7 +499,7 @@ Environment=HOME=/home/${COWRIE_USER}
 ExecStart=${COWRIE_ENV}/bin/twistd --umask=0022 --nodaemon \
     --logfile=${COWRIE_HOME}/var/log/cowrie/cowrie.log \
     cowrie
-ExecStop=/bin/kill -TERM $MAINPID
+ExecStop=/bin/kill -TERM \$MAINPID
 Type=simple
 Restart=on-failure
 RestartSec=5
