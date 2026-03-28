@@ -51,6 +51,11 @@ prompt_password() {
     while true; do
         read -rsp "  ${LABEL} : " P1 < /dev/tty; echo ""
         [[ ${#P1} -ge $MIN_LEN ]] || { warn "Minimum ${MIN_LEN} caractères requis."; continue; }
+        # Caractères incompatibles avec les heredoc bash, SQL et JSON utilisés dans ce script
+        if [[ "${P1}" =~ [\$\`\\\"\'] ]]; then
+            warn "Caractères interdits : \$ \` \\ \" '  — choisissez un autre mot de passe."
+            continue
+        fi
         read -rsp "  Confirmer ${LABEL} : " P2 < /dev/tty; echo ""
         [[ "$P1" == "$P2" ]] && break || warn "Les mots de passe ne correspondent pas, réessayez."
     done
@@ -612,7 +617,7 @@ import psycopg2, psycopg2.extras
 
 PG_CONFIG = {
     "host": "localhost", "dbname": "honeypot",
-    "user": "honeypot", "password": "${PG_PASS}",
+    "user": "honeypot", "password": os.environ.get("PG_PASS", ""),
 }
 BATCH_SIZE     = 500
 OPENCANARY_LOG = "/var/log/opencanary.log"
@@ -773,10 +778,11 @@ if __name__ == "__main__":
         save_positions(opencanary_pos)
 PYEOF
 
-# Substituer le mot de passe réel (le heredoc 'PYEOF' n'expand pas les variables)
-sed -i "s/\${PG_PASS}/${PG_PASS}/g" /opt/honeypot-to-postgres.py
-
 chmod +x /opt/honeypot-to-postgres.py
+
+# Fichier d'environnement pour le mot de passe PostgreSQL (évite l'injection sed)
+cat > /etc/honeypot-parser.env <<< "PG_PASS=${PG_PASS}"
+chmod 600 /etc/honeypot-parser.env
 
 # Service systemd honeypot-parser
 cat > /etc/systemd/system/honeypot-parser.service << SVCEOF
@@ -786,6 +792,7 @@ After=network.target postgresql.service
 
 [Service]
 Type=simple
+EnvironmentFile=/etc/honeypot-parser.env
 ExecStart=${PARSER_ENV}/bin/python3 /opt/honeypot-to-postgres.py
 Restart=always
 User=root
