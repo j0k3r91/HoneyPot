@@ -309,48 +309,21 @@ PY3=$(readlink -f "$(which python3)")
 setcap cap_net_bind_service=ep "${PY3}"
 ok "setcap cap_net_bind_service appliqué sur ${PY3}"
 
-# Générer cowrie.cfg depuis le template
+# Créer cowrie.cfg minimal (overrides uniquement — Cowrie fusionne .dist + .cfg)
+# setcap cap_net_bind_service permet l'écoute sur 22/23 sans root.
 [[ ! -f "${COWRIE_HOME}/etc/cowrie.cfg.dist" ]] && die "cowrie.cfg.dist introuvable — vérifiez le clone"
-cp "${COWRIE_HOME}/etc/cowrie.cfg.dist" "${COWRIE_HOME}/etc/cowrie.cfg"
-chown "${COWRIE_USER}:${COWRIE_USER}" "${COWRIE_HOME}/etc/cowrie.cfg"
+cat > "${COWRIE_HOME}/etc/cowrie.cfg" << CFGEOF
+[honeypot]
+hostname = ${COWRIE_HOSTNAME}
 
-# Activer SSH + Telnet, plug pglog
-python3 - <<PYEOF
-import re, sys
+[ssh]
+enabled = true
+listen_endpoints = tcp:22:interface=0.0.0.0
 
-cfg_path = "${COWRIE_HOME}/etc/cowrie.cfg"
-with open(cfg_path) as f:
-    content = f.read()
+[telnet]
+enabled = true
+listen_endpoints = tcp:23:interface=0.0.0.0
 
-# Section [honeypot] — hostname
-content = re.sub(r'(?m)^#?\s*hostname\s*=.*', 'hostname = ${COWRIE_HOSTNAME}', content)
-
-# Section [ssh] — activer + écoute directe sur port 22 (setcap autorise < 1024)
-content = re.sub(r'(?ms)(^\[ssh\].*?)(enabled\s*=\s*\w+)', r'\1enabled = true', content)
-# Forcer listen_port ET listen_endpoints (listen_endpoints prime sur listen_port)
-for pat in [r'(?ms)(^\[ssh\].*?)(#?\s*listen_port\s*=\s*\S+)',
-             r'(?ms)(^\[ssh\].*?)(#?\s*listen_endpoints\s*=\s*\S+)']:
-    if re.search(pat, content):
-        content = re.sub(pat,
-            lambda m, p=pat: m.group(1) + ('listen_port = 22' if 'listen_port' in p else 'listen_endpoints = tcp:22:interface=0.0.0.0'),
-            content, count=1)
-if not re.search(r'(?ms)^\[ssh\].*?listen_endpoints', content):
-    content = re.sub(r'(?ms)(^\[ssh\].*?enabled\s*=\s*true)', r'\1\nlisten_endpoints = tcp:22:interface=0.0.0.0', content, count=1)
-
-# Section [telnet] — activer + écoute directe sur port 23
-content = re.sub(r'(?ms)(^\[telnet\].*?)(enabled\s*=\s*\w+)', r'\1enabled = true', content)
-for pat in [r'(?ms)(^\[telnet\].*?)(#?\s*listen_port\s*=\s*\S+)',
-             r'(?ms)(^\[telnet\].*?)(#?\s*listen_endpoints\s*=\s*\S+)']:
-    if re.search(pat, content):
-        content = re.sub(pat,
-            lambda m, p=pat: m.group(1) + ('listen_port = 23' if 'listen_port' in p else 'listen_endpoints = tcp:23:interface=0.0.0.0'),
-            content, count=1)
-if not re.search(r'(?ms)^\[telnet\].*?listen_endpoints', content):
-    content = re.sub(r'(?ms)(^\[telnet\].*?enabled\s*=\s*true)', r'\1\nlisten_endpoints = tcp:23:interface=0.0.0.0', content, count=1)
-
-# Append [output_pglog] si absent
-if '[output_pglog]' not in content:
-    content += """
 [output_pglog]
 enabled = true
 host = localhost
@@ -359,15 +332,9 @@ username = ${PG_USER}
 password = ${PG_PASS}
 port = 5432
 debug = false
-"""
-
-with open(cfg_path, 'w') as f:
-    f.write(content)
-
-print("cowrie.cfg mis à jour")
-PYEOF
-
-ok "cowrie.cfg configuré"
+CFGEOF
+chown "${COWRIE_USER}:${COWRIE_USER}" "${COWRIE_HOME}/etc/cowrie.cfg"
+ok "cowrie.cfg configuré (ports 22/23, pglog activé)"
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 step "6/12 — Plugin pglog (Cowrie → PostgreSQL)"
