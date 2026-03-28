@@ -562,17 +562,17 @@ chown "${OPENCANARY_USER}:${OPENCANARY_USER}" /var/log/opencanary.log
 chmod 644 /var/log/opencanary.log
 
 # Service systemd OpenCanary
-# AmbientCapabilities=CAP_NET_BIND_SERVICE permet le binding 21/80 sans root.
+# User=root nécessaire : opencanaryd est un script bash qui appelle sudo en interne
+# pour gérer ses propres privilèges — incompatible avec un user non-root.
+# (les fichiers conf/log restent owned par opencanary pour limiter l'exposition)
 cat > /etc/systemd/system/opencanary.service << SVCEOF
 [Unit]
 Description=OpenCanary Honeypot
 After=network.target
 
 [Service]
-User=${OPENCANARY_USER}
-AmbientCapabilities=CAP_NET_BIND_SERVICE
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-WorkingDirectory=/home/${OPENCANARY_USER}
+User=root
+WorkingDirectory=/root
 ExecStart=${OPENCANARY_ENV}/bin/opencanaryd --dev
 Restart=on-failure
 RestartSec=5
